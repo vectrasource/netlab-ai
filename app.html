@@ -1223,7 +1223,13 @@
         // Split on SECTION markers
         const cliMatch = fullText.match(/\[CISCO IOS CONFIG\]([\s\S]*?)(?=\[EXPLANATION\]|$)/i);
         const expMatch = fullText.match(/\[EXPLANATION\]([\s\S]*)/i);
-        const cliText  = (cliMatch?.[1] || fullText).trim();
+        const rawCli = (cliMatch?.[1] || fullText).trim();
+        const cliText = rawCli
+          .replace(/^```[a-z]*\n?/gim, '')
+          .replace(/```$/gim, '')
+          .replace(/^---+$/gm, '')
+          .replace(/^#{1,6}\s.*/gm, '')
+          .trim();
         const expText  = (expMatch?.[1] || '').trim();
 
         lastConfigRaw = cliText;
