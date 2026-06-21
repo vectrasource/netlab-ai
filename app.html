@@ -1127,8 +1127,8 @@
         }
 
         div.innerHTML = `
-          ${title ? `<h4><span style="color:#334155;margin-right:4px;">${i+1}.</span>${escHtml(title)}</h4>` : ''}
-          <p>${escHtml(body).replace(/\n/g, '<br>')}</p>
+          ${title ? `<h4><span style="color:#334155;margin-right:4px;">${i+1}.</span>${renderMarkdown(title)}</h4>` : ''}
+          <p>${renderMarkdown(body).replace(/\n/g, '<br>')}</p>
         `;
 
         // Add exam tip for certain keywords
@@ -1145,6 +1145,12 @@
 
     function escHtml(str) {
       return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderMarkdown(str) {
+      return escHtml(str)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code style="background:#0a0e14;padding:1px 5px;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:0.85em;color:#00d9ff;">$1</code>');
     }
 
     // ─── Main generate function ──────────────────────────────────────────────
