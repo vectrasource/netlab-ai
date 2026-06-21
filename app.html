@@ -1105,7 +1105,15 @@
     function renderExplanation(explanationText, lang) {
       const pane = document.getElementById('pane-explain');
       // Split on double-newline for paragraph blocks
-      const paras = explanationText.split(/\n\n+/).filter(p => p.trim());
+      const cleaned = explanationText
+        .replace(/^---+$/gm, '')
+        .replace(/^\|(.+)\|$/gm, (row) => {
+          if (/^[\s|:-]+$/.test(row)) return '';
+          const cells = row.split('|').filter(c => c.trim());
+          return '<tr>' + cells.map(c => `<td style="padding:6px 12px;border:1px solid #1a2332;">${c.trim()}</td>`).join('') + '</tr>';
+        })
+        .replace(/(<tr>.*<\/tr>\n?)+/gs, (t) => `<table style="border-collapse:collapse;font-size:13px;margin:8px 0;width:100%;">${t}</table>`);
+      const paras = cleaned.split(/\n\n+/).filter(p => p.trim());
 
       pane.innerHTML = `<div style="margin-bottom:20px;">
         <span style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.08em;">
