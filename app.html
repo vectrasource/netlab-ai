@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetLab AI — Config Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --cyan: #00d9ff;
+      --blue: #0ea5e9;
+      --bg: #0a0e14;
+      --surface: #0f1520;
+      --surface2: #111827;
+      --border: #1a2332;
+      --border2: #1e2d42;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Nav ─────────────────────────────── */
+    .nav {
+      height: 56px;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 800;
+      color: #f1f5f9;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gen-counter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .counter-bar {
+      width: 80px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .counter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d9ff, #0ea5e9);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    /* ─── Main Layout ─────────────────────── */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── Left Panel ──────────────────────── */
+    .left-panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .panel-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .panel-header p {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 20px;
+    }
+
+    .panel-body::-webkit-scrollbar { width: 4px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    select, input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: rgba(0, 217, 255, 0.4);
+      box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.07);
+    }
+
+    select option { background: #0f1520; }
+
+    textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .divider-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .divider-label::before, .divider-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── Language Toggle ─────────────────── */
+    .lang-toggle {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .lang-btn {
+      flex: 1;
+      padding: 7px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      background: transparent;
+      color: #475569;
+    }
+
+    .lang-btn.active {
+      background: rgba(0, 217, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 217, 255, 0.25);
+    }
+
+    .lang-btn:hover:not(.active) { color: #94a3b8; }
+
+    /* ─── Generate Button ─────────────────── */
+    .generate-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, #00d9ff, #0ea5e9);
+      color: #0a0e14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      margin-top: 20px;
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+      flex-shrink: 0;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      box-shadow: 0 0 32px rgba(0, 217, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .panel-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ─── Right Panel ─────────────────────── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .output-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      gap: 2px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    .output-tab {
+      padding: 14px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .output-tab.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+    }
+
+    .output-tab:hover:not(.active) { color: #94a3b8; }
+
+    .output-content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── Terminal ────────────────────────── */
+    .terminal-pane {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .terminal-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #070b10;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tdot {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+    }
+
+    .terminal-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      background: var(--border);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: var(--border2); color: var(--cyan); }
+
+    .terminal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #070b10;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .terminal-body::-webkit-scrollbar { width: 4px; }
+    .terminal-body::-webkit-scrollbar-track { background: transparent; }
+    .terminal-body::-webkit-scrollbar-thumb { background: #1a2332; border-radius: 2px; }
+
+    /* Syntax classes */
+    .t-prompt   { color: #00d9ff; }
+    .t-comment  { color: #2a4a5e; }
+    .t-keyword  { color: #a78bfa; }
+    .t-value    { color: #34d399; }
+    .t-string   { color: #fbbf24; }
+    .t-linenum  { color: #1e3a4a; user-select: none; display: inline-block; min-width: 28px; text-align: right; margin-right: 12px; }
+
+    /* ─── Explanation Pane ────────────────── */
+    .explain-pane {
+      height: 100%;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    .explain-pane::-webkit-scrollbar { width: 4px; }
+    .explain-pane::-webkit-scrollbar-track { background: transparent; }
+    .explain-pane::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .explain-block {
+      margin-bottom: 24px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .explain-block h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .explain-block p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.75;
+    }
+
+    .exam-tip {
+      background: rgba(167, 139, 250, 0.06);
+      border: 1px solid rgba(167, 139, 250, 0.2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #a78bfa;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ─── Empty / Loading States ──────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-icon {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      background: rgba(0,217,255,0.06);
+      border: 1px solid rgba(0,217,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border2);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Coming Soon Sidebar Cards ──────── */
+    .coming-soon-strip {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 220px;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .cs-card {
+      padding: 18px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cs-card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .cs-card p {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.55;
+    }
+
+    .cs-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      color: #a78bfa;
+      background: rgba(167,139,250,0.1);
+      border: 1px solid rgba(167,139,250,0.2);
+      padding: 2px 7px;
+      border-radius: 100px;
+      margin-top: 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Error toast ─────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a0a0a;
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Mobile: stack layout */
+    @media (max-width: 768px) {
+      body { overflow: auto; }
+      .app-layout { grid-template-columns: 1fr; height: auto; }
+      .left-panel { border-right: none; border-bottom: 1px solid var(--border); }
+      .right-panel { min-height: 500px; }
+      .coming-soon-strip { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="index.html" class="nav-logo">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="rgba(0,217,255,0.1)"/>
+        <circle cx="14" cy="14" r="4" fill="#00d9ff"/>
+        <line x1="14" y1="6" x2="14" y2="10" stroke="#00d9ff" stroke-width="1.5" opacity="0.5"/>
+        <line x1="14" y1="18" x2="14" y2="22" stroke="#00d9ff" stroke-width="1.5" opacity="0.5"/>
+        <line x1="6" y1="14" x2="10" y2="14" stroke="#00d9ff" stroke-width="1.5" opacity="0.5"/>
+        <line x1="18" y1="14" x2="22" y2="14" stroke="#00d9ff" stroke-width="1.5" opacity="0.5"/>
+        <circle cx="14" cy="6" r="2" fill="#0ea5e9" opacity="0.7"/>
+        <circle cx="14" cy="22" r="2" fill="#0ea5e9" opacity="0.7"/>
+        <circle cx="6" cy="14" r="2" fill="#0ea5e9" opacity="0.7"/>
+        <circle cx="22" cy="14" r="2" fill="#0ea5e9" opacity="0.7"/>
+      </svg>
+      NetLab <span style="color:#00d9ff;">AI</span>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- Usage counter (shown when logged in) -->
+      <div class="gen-counter" id="gen-counter-nav" style="display:none;">
+        <span id="gens-left-nav">5</span><span style="color:#334155;">/5 free</span>
+        <div class="counter-bar"><div class="counter-fill" id="counter-fill-nav" style="width:100%"></div></div>
+      </div>
+      <a href="index.html#pricing" id="upgrade-btn" style="display:none;font-size:12px;font-weight:700;color:var(--cyan);text-decoration:none;padding:6px 12px;border:1px solid rgba(0,217,255,0.25);border-radius:6px;">Upgrade ₹199</a>
+      <!-- Shown when logged out -->
+      <button id="nav-login-btn" onclick="openAuthModal()" style="font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#00d9ff,#0ea5e9);color:#0a0e14;cursor:pointer;">Sign In</button>
+      <!-- Shown when logged in -->
+      <div id="nav-user-widget" style="display:none;align-items:center;"></div>
+    </div>
+  </nav>
+
+  <!-- APP LAYOUT -->
+  <div class="app-layout">
+
+    <!-- ─── LEFT PANEL: INPUT FORM ──────────────────── -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <h2>⚡ Config Generator</h2>
+        <p>Select config type → fill fields → generate</p>
+      </div>
+
+      <div class="panel-body" id="form-body">
+
+        <!-- Config Type -->
+        <div class="field-group">
+          <label class="field-label">Config Type</label>
+          <select id="config-type" onchange="renderDynamicFields()">
+            <option value="vlan">VLAN Configuration</option>
+            <option value="static-routing">Static Routing</option>
+            <option value="rip">RIP (v2)</option>
+            <option value="ospf">OSPF (Single Area)</option>
+            <option value="acl-standard">ACL — Standard</option>
+            <option value="acl-extended">ACL — Extended</option>
+            <option value="nat-static">NAT — Static</option>
+            <option value="nat-pat">NAT — PAT / Overload</option>
+            <option value="security">Basic Security (SSH + Port Security)</option>
+          </select>
+        </div>
+
+        <!-- Dynamic Fields Container -->
+        <div id="dynamic-fields"></div>
+
+        <div class="divider-label">Explanation</div>
+
+        <!-- Language Toggle -->
+        <div class="field-group">
+          <label class="field-label">Explanation Language</label>
+          <div class="lang-toggle" id="lang-toggle">
+            <button class="lang-btn active" data-lang="english" onclick="setLang('english', this)">English</button>
+            <button class="lang-btn" data-lang="malayalam" onclick="setLang('malayalam', this)">മലയാളം</button>
+            <button class="lang-btn" data-lang="hindi" onclick="setLang('hindi', this)">हिंदी</button>
+          </div>
+          <p style="font-size:11px;color:#334155;margin-top:6px;">Malayalam/Hindi uses Claude Sonnet for better accuracy</p>
+        </div>
+
+        <!-- Extra context -->
+        <div class="field-group">
+          <label class="field-label">Extra Context (optional)</label>
+          <textarea id="extra-context" placeholder="e.g. This is for a CCNA lab practice. Router is 2911. Explain in simple terms for a 2nd year diploma student." rows="3"></textarea>
+        </div>
+
+      </div>
+
+      <div class="panel-footer">
+        <button class="generate-btn" id="gen-btn" onclick="generate()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Generate Config
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── RIGHT PANEL: OUTPUT ─────────────────────── -->
+    <div class="right-panel">
+
+      <!-- Tabs -->
+      <div class="output-tabs">
+        <button class="output-tab active" id="tab-cli" onclick="switchTab('cli')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          CLI Output
+        </button>
+        <button class="output-tab" id="tab-explain" onclick="switchTab('explain')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Explanation
+        </button>
+      </div>
+
+      <!-- Output Content -->
+      <div class="output-content">
+
+        <!-- CLI Tab -->
+        <div id="pane-cli" class="terminal-pane">
+          <div class="terminal-toolbar">
+            <div class="terminal-dots">
+              <div class="tdot" style="background:#ff5f57"></div>
+              <div class="tdot" style="background:#febc2e"></div>
+              <div class="tdot" style="background:#28c840"></div>
+            </div>
+            <span class="terminal-title" id="terminal-title">cisco-ios — netlab-ai</span>
+            <button class="copy-btn" onclick="copyConfig()" id="copy-btn" style="display:none;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <div class="terminal-body" id="terminal-body">
+            <div class="empty-state">
+              <div class="empty-icon">⚡</div>
+              <p style="font-size:14px;font-weight:600;color:#334155;margin-bottom:8px;">No config generated yet</p>
+              <p style="font-size:13px;color:#1e3a4a;">Fill in the form on the left and click Generate Config</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explain Tab -->
+        <div id="pane-explain" class="explain-pane" style="display:none;">
+          <div class="empty-state">
+            <div class="empty-icon">📖</div>
+            <p style="font-size:14px;font-weight:600;color:#334155;margin-bottom:8px;">Explanation will appear here</p>
+            <p style="font-size:13px;color:#1e3a4a;">Generate a config first, then switch to this tab</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ─── Config: API (calls Supabase Edge Function — key never touches browser) ─
+    const EDGE_FUNCTION_URL = 'https://enqqdltgkpiarfdfkfgm.supabase.co/functions/v1/generate-config';
+
+    // ─── Auth + plan state ───────────────────────────────────────────────────
+    let currentUser    = null;
+    let currentPlanRow = null;
+
+    async function initApp() {
+      await initNavAuth('nav-login-btn', 'nav-user-widget');
+      const session = await getSession();
+      if (!session) {
+        // Not logged in — show a login wall over the form
+        showLoginWall();
+        return;
+      }
+      currentUser    = session.user;
+      currentPlanRow = await getUserPlan(currentUser.id);
+      updateCounter();
+      applyPlanRestrictions();
+    }
+
+    function updateCounter() {
+      if (!currentPlanRow) return;
+      const limit = PLAN_LIMITS[currentPlanRow.plan] ?? 5;
+      const used  = currentPlanRow.generations_used ?? 0;
+      const left  = limit === Infinity ? '∞' : Math.max(0, limit - used);
+      const pct   = limit === Infinity ? 100 : Math.max(0, (1 - used / limit) * 100);
+
+      document.getElementById('gen-counter-nav').style.display = 'flex';
+      document.getElementById('upgrade-btn').style.display     =
+        currentPlanRow.plan === 'free' ? 'inline-flex' : 'none';
+      document.getElementById('gens-left-nav').textContent     = left;
+      document.getElementById('counter-fill-nav').style.width  = pct + '%';
+    }
+
+    // Lock language buttons the user's plan doesn't cover
+    function applyPlanRestrictions() {
+      if (!currentPlanRow) return;
+      const allowed = PLAN_LANGUAGES[currentPlanRow.plan] || ['english'];
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        const lang = btn.dataset.lang;
+        if (!allowed.includes(lang)) {
+          btn.disabled = true;
+          btn.title    = 'Upgrade to unlock ' + lang;
+          btn.style.opacity = '0.35';
+          btn.style.cursor  = 'not-allowed';
+        }
+      });
+    }
+
+    function showLoginWall() {
+      document.getElementById('gen-btn').disabled = true;
+      const body = document.getElementById('form-body');
+      const wall = document.createElement('div');
+      wall.style.cssText = 'position:absolute;inset:0;background:rgba(10,14,20,0.88);backdrop-filter:blur(4px);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:32px;border-radius:0;';
+      wall.innerHTML = `
+        <div style="font-size:36px;">🔒</div>
+        <p style="font-size:15px;font-weight:700;color:#f1f5f9;">Sign in to use NetLab AI</p>
+        <p style="font-size:13px;color:#475569;max-width:220px;line-height:1.6;">Free account gives you 5 config generations/month</p>
+        <button onclick="openAuthModal()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#00d9ff,#0ea5e9);color:#0a0e14;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 0 20px rgba(0,217,255,0.25);">Sign In / Sign Up Free</button>
+      `;
+      // Make left panel relative so wall overlays it
+      document.querySelector('.left-panel').style.position = 'relative';
+      document.querySelector('.left-panel').appendChild(wall);
+    }
+
+    // ─── Language state ──────────────────────────────────────────────────────
+    let currentLang = 'english';
+    function setLang(lang, el) {
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    // ─── Tab switching ───────────────────────────────────────────────────────
+    function switchTab(tab) {
+      document.getElementById('pane-cli').style.display     = tab === 'cli'     ? 'flex' : 'none';
+      document.getElementById('pane-explain').style.display = tab === 'explain' ? 'block' : 'none';
+      document.getElementById('tab-cli').classList.toggle('active',     tab === 'cli');
+      document.getElementById('tab-explain').classList.toggle('active', tab === 'explain');
+    }
+
+    // ─── Dynamic Fields ──────────────────────────────────────────────────────
+    const FIELDS = {
+      'vlan': `
+        <div class="field-group">
+          <label class="field-label">Device Hostname</label>
+          <input type="text" id="f-hostname" placeholder="SW1" value="SW1"/>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">VLAN IDs (comma-sep)</label>
+            <input type="text" id="f-vlan-ids" placeholder="10, 20, 30"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">VLAN Names (comma-sep)</label>
+            <input type="text" id="f-vlan-names" placeholder="SALES, HR, MGMT"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Access Port Assignments</label>
+          <textarea id="f-vlan-ports" placeholder="VLAN10: Fa0/1-5&#10;VLAN20: Fa0/6-10" rows="3"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Trunk Ports (optional)</label>
+          <input type="text" id="f-trunk-ports" placeholder="Gi0/1, Gi0/2"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Management VLAN IP (optional)</label>
+          <input type="text" id="f-mgmt-ip" placeholder="e.g. 192.168.1.1/24" autocomplete="off"/>
+        </div>`,
+
+      'static-routing': `
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Router Hostname</label>
+            <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">No. of Interfaces</label>
+            <input type="number" id="f-iface-count" placeholder="2" value="2" min="1" max="8"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Interface IPs (one per line: iface ip/prefix)</label>
+          <textarea id="f-interfaces" placeholder="Gi0/0 192.168.1.1/24&#10;Gi0/1 10.0.0.1/30" rows="3"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Static Routes (one per line: dest/prefix via next-hop)</label>
+          <textarea id="f-routes" placeholder="0.0.0.0/0 via 10.0.0.2&#10;172.16.0.0/16 via 192.168.2.1" rows="3"></textarea>
+        </div>`,
+
+      'rip': `
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Router Hostname</label>
+            <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">RIP Version</label>
+            <select id="f-rip-ver"><option value="2">v2</option><option value="1">v1</option></select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Interface IPs (one per line: iface ip/prefix)</label>
+          <textarea id="f-interfaces" placeholder="Gi0/0 192.168.1.1/24&#10;Gi0/1 172.16.0.1/24" rows="3"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Networks to Advertise (classful, one per line)</label>
+          <textarea id="f-networks" placeholder="192.168.1.0&#10;172.16.0.0" rows="2"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Passive Interfaces (optional)</label>
+          <input type="text" id="f-passive" placeholder="Gi0/0"/>
+        </div>`,
+
+      'ospf': `
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Router Hostname</label>
+            <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">OSPF Process ID</label>
+            <input type="number" id="f-ospf-pid" placeholder="1" value="1" min="1"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Router ID</label>
+          <input type="text" id="f-router-id" placeholder="1.1.1.1"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Interface IPs (one per line: iface ip/prefix)</label>
+          <textarea id="f-interfaces" placeholder="Gi0/0 192.168.1.1/24&#10;Gi0/1 10.0.0.1/30" rows="3"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Network statements (one per line: network wildcard area)</label>
+          <textarea id="f-networks" placeholder="192.168.1.0 0.0.0.255 area 0&#10;10.0.0.0 0.0.0.3 area 0" rows="3"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Passive Interfaces (optional)</label>
+          <input type="text" id="f-passive" placeholder="Gi0/2"/>
+        </div>`,
+
+      'acl-standard': `
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Router Hostname</label>
+            <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">ACL Type</label>
+            <select id="f-acl-type">
+              <option value="numbered">Numbered (1-99)</option>
+              <option value="named">Named</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ACL Number or Name</label>
+          <input type="text" id="f-acl-id" placeholder="10 or BLOCK_SALES"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ACL Rules (one per line: permit/deny source wildcard)</label>
+          <textarea id="f-acl-rules" placeholder="permit 192.168.1.0 0.0.0.255&#10;deny any" rows="4"></textarea>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Apply to Interface</label>
+            <input type="text" id="f-acl-iface" placeholder="Gi0/1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Direction</label>
+            <select id="f-acl-dir">
+              <option value="in">inbound</option>
+              <option value="out">outbound</option>
+            </select>
+          </div>
+        </div>`,
+
+      'acl-extended': `
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Router Hostname</label>
+            <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">ACL Type</label>
+            <select id="f-acl-type">
+              <option value="numbered">Numbered (100-199)</option>
+              <option value="named">Named</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ACL Number or Name</label>
+          <input type="text" id="f-acl-id" placeholder="100 or FILTER_HTTP"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Rules (one per line: permit/deny proto src src-wild dst dst-wild [eq port])</label>
+          <textarea id="f-acl-rules" placeholder="permit tcp 192.168.1.0 0.0.0.255 any eq 80&#10;deny ip any any" rows="4"></textarea>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Apply to Interface</label>
+            <input type="text" id="f-acl-iface" placeholder="Gi0/0"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Direction</label>
+            <select id="f-acl-dir">
+              <option value="in">inbound</option>
+              <option value="out">outbound</option>
+            </select>
+          </div>
+        </div>`,
+
+      'nat-static': `
+        <div class="field-group">
+          <label class="field-label">Router Hostname</label>
+          <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Static NAT Mappings (one per line: inside-local inside-global)</label>
+          <textarea id="f-nat-mappings" placeholder="192.168.1.10 203.0.113.10&#10;192.168.1.20 203.0.113.20" rows="3"></textarea>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Inside Interface</label>
+            <input type="text" id="f-nat-inside" placeholder="Gi0/1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Outside Interface</label>
+            <input type="text" id="f-nat-outside" placeholder="Gi0/0"/>
+          </div>
+        </div>`,
+
+      'nat-pat': `
+        <div class="field-group">
+          <label class="field-label">Router Hostname</label>
+          <input type="text" id="f-hostname" placeholder="R1" value="R1"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Inside Network(s) to NAT (one per line: network wildcard)</label>
+          <textarea id="f-nat-networks" placeholder="192.168.1.0 0.0.0.255&#10;10.0.0.0 0.0.0.255" rows="2"></textarea>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Inside Interface</label>
+            <input type="text" id="f-nat-inside" placeholder="Gi0/1"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Outside Interface</label>
+            <input type="text" id="f-nat-outside" placeholder="Gi0/0"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ACL Number for NAT Pool</label>
+          <input type="text" id="f-nat-acl" placeholder="1"/>
+        </div>`,
+
+      'security': `
+        <div class="field-group">
+          <label class="field-label">Device Hostname</label>
+          <input type="text" id="f-hostname" placeholder="SW1 or R1" value="R1"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Domain Name</label>
+          <input type="text" id="f-domain" placeholder="netlabai.local"/>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Enable Secret</label>
+            <input type="text" id="f-secret" placeholder="Cisco@123"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">SSH Username</label>
+            <input type="text" id="f-ssh-user" placeholder="admin"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">SSH Password</label>
+          <input type="text" id="f-ssh-pass" placeholder="Cisco@123"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Port Security Interface(s)</label>
+          <input type="text" id="f-portsec-iface" placeholder="Fa0/1, Fa0/2"/>
+        </div>
+        <div class="row-2">
+          <div class="field-group">
+            <label class="field-label">Max MACs per port</label>
+            <input type="number" id="f-max-mac" placeholder="2" value="2"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Violation Action</label>
+            <select id="f-violation">
+              <option value="shutdown">shutdown</option>
+              <option value="restrict">restrict</option>
+              <option value="protect">protect</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Login Banner Message</label>
+          <textarea id="f-banner" placeholder="Authorized access only. Violators will be prosecuted." rows="2"></textarea>
+        </div>`,
+    };
+
+    function renderDynamicFields() {
+      const type = document.getElementById('config-type').value;
+      document.getElementById('dynamic-fields').innerHTML = FIELDS[type] || '';
+    }
+    renderDynamicFields();
+
+    // ─── Collect form values ─────────────────────────────────────────────────
+    function collectFormData() {
+      const type = document.getElementById('config-type').value;
+      const get  = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+      const data = { type };
+
+      // Pull every field that exists
+      const ids = ['f-hostname','f-vlan-ids','f-vlan-names','f-vlan-ports','f-trunk-ports','f-mgmt-ip',
+                   'f-interfaces','f-routes','f-networks','f-passive','f-rip-ver',
+                   'f-ospf-pid','f-router-id','f-acl-type','f-acl-id','f-acl-rules','f-acl-iface','f-acl-dir',
+                   'f-nat-mappings','f-nat-networks','f-nat-inside','f-nat-outside','f-nat-acl',
+                   'f-domain','f-secret','f-ssh-user','f-ssh-pass','f-portsec-iface','f-max-mac','f-violation','f-banner',
+                   'extra-context'];
+      ids.forEach(id => { const v = get(id); if (v) data[id.replace('f-','')] = v; });
+      return data;
+    }
+
+    // ─── Upgrade prompt (shown when free limit hit) ───────────────────────────
+    function showUpgradePrompt() {
+      document.getElementById('terminal-body').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:40px;margin-bottom:16px;">🔒</div>
+          <p style="font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Free limit reached</p>
+          <p style="font-size:13px;color:#475569;margin-bottom:20px;max-width:260px;line-height:1.6;">
+            You've used all 5 free generations this month. Upgrade to keep generating.
+          </p>
+          <a href="index.html#pricing" style="display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:10px;background:linear-gradient(135deg,#00d9ff,#0ea5e9);color:#0a0e14;font-size:13px;font-weight:700;text-decoration:none;">
+            See Plans → from ₹199/month
+          </a>
+        </div>`;
+    }
+
+    // ─── Render terminal output ──────────────────────────────────────────────
+    function renderTerminal(configText) {
+      const lines = configText.split('\n');
+      const body  = document.getElementById('terminal-body');
+      body.innerHTML = '';
+
+      lines.forEach((line, i) => {
+        const div = document.createElement('div');
+        const num = document.createElement('span');
+        num.className = 'linenum t-linenum';
+        num.textContent = i + 1;
+
+        const content = document.createElement('span');
+        const t = line.trim();
+
+        if (t.startsWith('!')) {
+          content.innerHTML = `<span class="t-comment">${escHtml(line)}</span>`;
+        } else if (/^(interface|router|vlan|crypto|line|ip access-list|banner)\b/i.test(t)) {
+          content.innerHTML = `<span class="t-keyword">${escHtml(line)}</span>`;
+        } else if (/^(no shutdown|shutdown|end|exit|do|hostname|enable|configure terminal)/i.test(t)) {
+          content.innerHTML = `<span class="t-prompt">${escHtml(line)}</span>`;
+        } else if (/ \d+\.\d+\.\d+\.\d+/.test(line)) {
+          content.innerHTML = escHtml(line).replace(/(\d+\.\d+\.\d+\.\d+)/g, '<span class="t-value">$1</span>');
+        } else {
+          content.textContent = line;
+        }
+
+        div.appendChild(num);
+        div.appendChild(content);
+        body.appendChild(div);
+      });
+
+      document.getElementById('copy-btn').style.display = 'flex';
+      document.getElementById('terminal-title').textContent =
+        document.getElementById('config-type').options[document.getElementById('config-type').selectedIndex].text.toLowerCase().replace(/ /g, '-') + ' — netlab-ai';
+    }
+
+    // ─── Render explanation ──────────────────────────────────────────────────
+    function renderExplanation(explanationText, lang) {
+      const pane = document.getElementById('pane-explain');
+      // Split on double-newline for paragraph blocks
+      const paras = explanationText.split(/\n\n+/).filter(p => p.trim());
+
+      pane.innerHTML = `<div style="margin-bottom:20px;">
+        <span style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.08em;">
+          Explanation · ${lang === 'malayalam' ? 'മലയാളം' : lang === 'hindi' ? 'हिंदी' : 'English'}
+        </span>
+      </div>`;
+
+      paras.forEach((para, i) => {
+        const div = document.createElement('div');
+        div.className = 'explain-block';
+
+        // Try to extract a heading (lines starting with # or number.)
+        const lines = para.trim().split('\n');
+        let title = '', body = para;
+
+        if (lines[0].match(/^#+\s|^\d+\.\s|^[A-Zഀ-ൿ][^a-z]{0,30}:/)) {
+          title = lines[0].replace(/^#+\s*/, '').replace(/:$/, '');
+          body  = lines.slice(1).join('\n');
+        }
+
+        div.innerHTML = `
+          ${title ? `<h4><span style="color:#334155;margin-right:4px;">${i+1}.</span>${escHtml(title)}</h4>` : ''}
+          <p>${escHtml(body).replace(/\n/g, '<br>')}</p>
+        `;
+
+        // Add exam tip for certain keywords
+        if (/CCNA|exam|topic|module|objective/i.test(para)) {
+          const tip = document.createElement('div');
+          tip.className = 'exam-tip';
+          tip.innerHTML = `<span>📝</span><span>CCNA Exam Tip: This concept appears in the exam. Make sure you understand it well before your test.</span>`;
+          div.appendChild(tip);
+        }
+
+        pane.appendChild(div);
+      });
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ─── Main generate function ──────────────────────────────────────────────
+    let lastConfigRaw = '';
+
+    async function generate() {
+      // Auth check — edge function also enforces this server-side
+      if (!currentUser) { openAuthModal(); return; }
+
+      const lang = currentLang;
+
+      // Optimistic client-side plan check (server enforces too)
+      const allowed = PLAN_LANGUAGES[currentPlanRow?.plan || 'free'];
+      if (!allowed.includes(lang)) {
+        showToast(`${lang.charAt(0).toUpperCase() + lang.slice(1)} explanations require an upgraded plan.`);
+        return;
+      }
+
+      const data = collectFormData();
+
+      // Loading state
+      const btn = document.getElementById('gen-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> Generating...`;
+
+      document.getElementById('terminal-body').innerHTML = `
+        <div class="empty-state">
+          <div class="spinner" style="width:36px;height:36px;"></div>
+          <p style="font-size:13px;color:#334155;margin-top:16px;">Generating Cisco IOS config…</p>
+          <p style="font-size:12px;color:#1e3a4a;margin-top:4px;">Checking with server…</p>
+        </div>`;
+      document.getElementById('copy-btn').style.display = 'none';
+
+      try {
+        // Get the user's live session token to authenticate the edge function call
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Session expired. Please sign in again.');
+
+        // Build the fields payload from the form
+        const fields = {};
+        Object.entries(data).forEach(([k, v]) => { if (k !== 'type') fields[k] = v; });
+
+        const res = await fetch(EDGE_FUNCTION_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type':  'application/json',
+          },
+          body: JSON.stringify({
+            configType:   data.type,
+            fields,
+            language:     lang,
+            extraContext: data['extra-context'] || '',
+          }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          // Handle plan limit specifically
+          if (result.limitReached) {
+            showUpgradePrompt();
+            throw new Error(result.error);
+          }
+          throw new Error(result.error || `Server error ${res.status}`);
+        }
+
+        const fullText = result.text || '';
+
+        // Split on SECTION markers
+        const cliMatch = fullText.match(/\[CISCO IOS CONFIG\]([\s\S]*?)(?=\[EXPLANATION\]|$)/i);
+        const expMatch = fullText.match(/\[EXPLANATION\]([\s\S]*)/i);
+        const cliText  = (cliMatch?.[1] || fullText).trim();
+        const expText  = (expMatch?.[1] || '').trim();
+
+        lastConfigRaw = cliText;
+        renderTerminal(cliText);
+        if (expText) renderExplanation(expText, lang);
+
+        // Update counter from server response (no extra DB call needed)
+        if (currentPlanRow) {
+          currentPlanRow.generations_used = result.generationsUsed;
+          updateCounter();
+        }
+
+      } catch (err) {
+        document.getElementById('terminal-body').innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:36px;margin-bottom:16px;">⚠️</div>
+            <p style="font-size:14px;font-weight:600;color:#fca5a5;margin-bottom:8px;">Generation Failed</p>
+            <p style="font-size:13px;color:#334155;">${escHtml(err.message)}</p>
+          </div>`;
+        showToast('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Config`;
+      }
+    }
+
+    // ─── Copy config ─────────────────────────────────────────────────────────
+    function copyConfig() {
+      if (!lastConfigRaw) return;
+      navigator.clipboard.writeText(lastConfigRaw).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+        btn.style.color = '#00d9ff';
+        setTimeout(() => {
+          btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`;
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    // ─── Toast ───────────────────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    // ─── Keyboard shortcut: Ctrl/Cmd+Enter → generate ────────────────────────
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
+    });
+  </script>
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => initApp());
+  </script>
+</body>
+</html>
