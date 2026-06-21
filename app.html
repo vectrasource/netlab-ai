@@ -1273,7 +1273,13 @@
   </script>
   <script src="auth.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => initApp());
+    document.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      setTimeout(() => {
+        const mgmt = document.getElementById('f-mgmt-ip');
+        if (mgmt) mgmt.value = '';
+      }, 300);
+    });
   </script>
 </body>
 </html>
