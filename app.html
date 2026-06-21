@@ -601,7 +601,6 @@
             <button class="lang-btn" data-lang="malayalam" onclick="setLang('malayalam', this)">മലയാളം</button>
             <button class="lang-btn" data-lang="hindi" onclick="setLang('hindi', this)">हिंदी</button>
           </div>
-          <p style="font-size:11px;color:#334155;margin-top:6px;">Malayalam/Hindi uses Claude Sonnet for better accuracy</p>
         </div>
 
         <!-- Extra context -->
@@ -1106,6 +1105,7 @@
       const pane = document.getElementById('pane-explain');
       // Split on double-newline for paragraph blocks
       const cleaned = explanationText
+        .replace(/^\[END\]$/gm, '')
         .replace(/^---+$/gm, '')
         .replace(/^\|(.+)\|$/gm, (row) => {
           if (/^[\s|:-]+$/.test(row)) return '';
