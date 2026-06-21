@@ -207,13 +207,14 @@ STRICT RULES:
 3. For Malayalam or Hindi: use native Unicode script only. NEVER use romanized/Latin-script transliteration for explanations.
 4. All configs must be exam-correct. Do not invent non-existent Cisco commands.
 5. Connect explanations to CCNA exam objectives wherever relevant.
-6. Format output as two clearly separated sections:
+6. Format output EXACTLY like this — no extra text, no section headers, no markdown outside these markers:
 
-SECTION 1: [CISCO IOS CONFIG]
-(raw Cisco IOS commands, properly indented, with brief inline ! comments)
-
-SECTION 2: [EXPLANATION]
+[CISCO IOS CONFIG]
+(raw Cisco IOS commands only, properly indented, with brief inline ! comments, wrapped in a single code block)
+[EXPLANATION]
 (friendly, pedagogical walkthrough of WHY each command block exists — in the requested language)
+
+IMPORTANT: Do NOT add "SECTION 1:", "SECTION 2:", "---", or any other text outside these two markers.
 
 ${langInstructions[lang] ?? langInstructions['english']}`;
 
